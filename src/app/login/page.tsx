@@ -1,12 +1,13 @@
 "use client";
 
+import Image from "next/image";
 import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle } from "lucide-react";
 import { motion } from "framer-motion";
 
 function LoginForm() {
@@ -51,13 +52,18 @@ function LoginForm() {
         className="w-full max-w-sm"
       >
         <div className="flex items-center justify-center gap-2 mb-6">
-          <div className="w-9 h-9 rounded-lg bg-foreground text-background flex items-center justify-center">
-            <Sparkles className="w-4 h-4" />
-          </div>
+          <Image
+            src="/images/logo.png"
+            alt="Tentacle Logo"
+            width={36}
+            height={36}
+            className="rounded-lg"
+            priority
+          />
           <div className="leading-tight">
             <div className="text-[15px] font-semibold tracking-tight">Tentacle</div>
             <div className="text-[10px] text-muted-foreground uppercase tracking-wider">
-              Marigold &amp; Co
+              Marigold & Co
             </div>
           </div>
         </div>
@@ -119,46 +125,6 @@ function LoginForm() {
               {loading ? "Signing in…" : "Sign in"}
             </Button>
           </form>
-
-          <div className="mt-4 pt-4 border-t border-border">
-            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-medium mb-2">
-              Demo credentials
-            </div>
-            <div className="space-y-1 text-[11px]">
-              <button
-                onClick={() => {
-                  setEmail("avery@marigold.co");
-                  setPassword("demo1234");
-                }}
-                className="w-full text-left px-2 py-1 rounded hover:bg-muted/40 transition-colors"
-              >
-                <span className="font-medium text-foreground">Agent</span>
-                <span className="text-muted-foreground ml-2">avery@marigold.co / demo1234</span>
-              </button>
-              <button
-                onClick={() => {
-                  setEmail("bennett@marigold.co");
-                  setPassword("demo1234");
-                }}
-                className="w-full text-left px-2 py-1 rounded hover:bg-muted/40 transition-colors"
-              >
-                <span className="font-medium text-foreground">Manager</span>
-                <span className="text-muted-foreground ml-2">
-                  bennett@marigold.co / demo1234
-                </span>
-              </button>
-              <button
-                onClick={() => {
-                  setEmail("admin@marigold.co");
-                  setPassword("admin1234");
-                }}
-                className="w-full text-left px-2 py-1 rounded hover:bg-muted/40 transition-colors"
-              >
-                <span className="font-medium text-foreground">Admin</span>
-                <span className="text-muted-foreground ml-2">admin@marigold.co / admin1234</span>
-              </button>
-            </div>
-          </div>
         </div>
 
         <p className="text-center text-[10.5px] text-muted-foreground mt-4">
