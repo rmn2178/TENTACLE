@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // No "output: standalone" — Vercel manages its own output format
+  // Netlify handles its own output format via @netlify/plugin-nextjs
   // Strict type-checking on build — production code must not ignore TS errors
   typescript: {
     ignoreBuildErrors: false,
@@ -10,6 +10,10 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   // Powered-by header removal + security headers
   poweredByHeader: false,
+  // Required for Netlify — images from local public/ folder
+  images: {
+    unoptimized: true,
+  },
   async headers() {
     return [
       {
