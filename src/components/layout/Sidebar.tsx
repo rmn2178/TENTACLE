@@ -7,10 +7,10 @@ import {
   TrendingUp,
   Brain,
   Settings,
-  Sparkles,
   AlertTriangle,
   ScrollText,
 } from "lucide-react";
+import Image from "next/image";
 import { useAppStore, type ViewKey } from "@/store/appStore";
 import { cn } from "@/lib/utils";
 
@@ -70,8 +70,8 @@ export function Sidebar() {
     <aside className="hidden md:flex w-[220px] shrink-0 flex-col border-r border-border bg-sidebar/60 backdrop-blur-sm">
       {/* Logo + tagline */}
       <div className="h-14 flex items-center gap-2.5 px-4 border-b border-border">
-        <div className="w-7 h-7 rounded-md bg-foreground text-background flex items-center justify-center shrink-0">
-          <Sparkles className="w-3.5 h-3.5" />
+        <div className="w-7 h-7 shrink-0 flex items-center justify-center">
+          <Image src="/images/logo.png" alt="Tentacle" width={28} height={28} className="rounded-md object-contain" />
         </div>
         <div className="leading-tight min-w-0">
           <div className="text-[13px] font-semibold tracking-tight">Tentacle</div>

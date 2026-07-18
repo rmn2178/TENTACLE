@@ -1,6 +1,7 @@
 "use client";
 
 import { Search, Bell, Command, Moon, Sun, Menu, Check, LogOut, ChevronDown } from "lucide-react";
+import Image from "next/image";
 import { useTheme } from "next-themes";
 import { useAppStore } from "@/store/appStore";
 import { Input } from "@/components/ui/input";
@@ -72,12 +73,11 @@ export function Topbar() {
       </Button>
 
       <div className="flex items-center gap-2 md:hidden">
-        <div className="w-7 h-7 rounded-md bg-foreground text-background flex items-center justify-center text-xs font-semibold">
-          R
-        </div>
+        <Image src="/images/logo.png" alt="Tentacle" width={28} height={28} className="rounded-md object-contain" />
       </div>
 
       <div className="hidden sm:flex items-center gap-1.5 text-[12px] text-muted-foreground">
+        <Image src="/images/logo.png" alt="Tentacle" width={22} height={22} className="rounded object-contain" />
         <span className="font-medium text-foreground">Tentacle</span>
         <span className="text-muted-foreground/40">·</span>
         <span className="text-[11px] text-muted-foreground">AI Workforce for SMBs</span>

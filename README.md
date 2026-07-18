@@ -1,12 +1,12 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="images/pannel.jpg">
-    <img src="images/pannel.jpg" alt="Tentacle Logo" width="500" height="120">
+    <img src="images/pannel.jpg" alt="Tentacle Logo" width="8000" height="250">
   </picture>
 </p>
 
 
-<h3 align="center">Autonomous Customer Resolution Copilot for E-Commerce Care</h3>
+<h3 align="center">Autonomous Customer Resolution Copilot for E-Commerce Care </h3>
 
 <p align="center">
   <em>An AI operations assistant that understands customer issues, retrieves context, decides safe next actions, executes allowed workflows, escalates only when needed, and logs everything to a full audit trail.</em>
@@ -157,7 +157,7 @@ The name **Tentacle** reflects the system's design philosophy: like an octopus w
 ```
                     ╭─────────────╮
                     │   AI Core   │
-                    │  (GLM LLM)  │
+                    │   ( LLM )   │
                     ╰──────┬──────╯
                            │
            ┌───────────────┼───────────────┐
