@@ -7,4 +7,3 @@
 
 [build.environment]
   NODE_VERSION = "20"
-  PRISMA_CLIENT_ENGINE_TYPE = "dataproxy"

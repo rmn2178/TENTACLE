@@ -1,37 +1,23 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
 import { getLLMCircuitBreakerState } from "@/lib/ai/llm";
-import { logger } from "@/lib/observability/logger";
+import { getStore } from "@/lib/data/store";
 
 export const runtime = "nodejs";
 
-interface HealthCheck {
-  status: "healthy" | "degraded" | "unhealthy";
-  latency_ms?: number;
-  error?: string;
-}
-
-/**
- * Health check endpoint — verifies database connectivity and AI circuit breaker state.
- * Used by load balancers and orchestration platforms to determine if the service
- * is ready to receive traffic.
- *
- * Returns 200 if healthy/degraded, 503 if unhealthy.
- */
 export async function GET() {
-  const checks: Record<string, HealthCheck> = {};
+  const checks: Record<string, { status: "healthy" | "degraded" | "unhealthy"; latency_ms?: number; error?: string }> = {};
 
-  // Database check
-  const dbStart = performance.now();
+  // In-memory store check (replaces DB check)
+  const storeStart = performance.now();
   try {
-    await db.$queryRaw`SELECT 1`;
-    checks.database = { status: "healthy", latency_ms: Math.round(performance.now() - dbStart) };
+    const store = getStore();
+    void store.cases.length; // trivial read to verify store is accessible
+    checks.database = { status: "healthy", latency_ms: Math.round(performance.now() - storeStart) };
   } catch (err) {
     checks.database = {
       status: "unhealthy",
-      error: err instanceof Error ? err.message : "Unknown database error",
+      error: err instanceof Error ? err.message : "Store error",
     };
-    logger.error("health_check_db_failed", { error: checks.database.error });
   }
 
   // AI circuit breaker check
@@ -40,7 +26,6 @@ export async function GET() {
     status: cbState === "closed" ? "healthy" : cbState === "half-open" ? "degraded" : "unhealthy",
   };
 
-  // Overall status
   const values = Object.values(checks);
   const overall: "healthy" | "degraded" | "unhealthy" = values.every((c) => c.status === "healthy")
     ? "healthy"
@@ -48,14 +33,8 @@ export async function GET() {
     ? "unhealthy"
     : "degraded";
 
-  const statusCode = overall === "healthy" ? 200 : overall === "degraded" ? 200 : 503;
-
   return NextResponse.json(
-    {
-      status: overall,
-      timestamp: new Date().toISOString(),
-      checks,
-    },
-    { status: statusCode }
+    { status: overall, timestamp: new Date().toISOString(), checks },
+    { status: overall === "unhealthy" ? 503 : 200 }
   );
 }

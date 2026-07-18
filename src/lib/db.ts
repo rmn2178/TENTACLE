@@ -1,17 +1,3 @@
-import { PrismaClient, type Prisma } from "@prisma/client";
-
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
-};
-
-// Conditional logging — verbose in development, errors only in production
-const logLevel: Prisma.LogLevel[] =
-  process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"];
-
-export const db =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: logLevel,
-  });
-
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
+// Prisma is not used in this deployment — all data is in-memory.
+// This file is kept as a stub to avoid import errors during build.
+export const db = null as never;

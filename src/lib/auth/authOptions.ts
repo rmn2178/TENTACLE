@@ -1,6 +1,6 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { db } from "@/lib/db";
+import { getUserByEmail } from "@/lib/data/store";
 import { createHash } from "crypto";
 
 function verifyPassword(password: string, hash: string): boolean {
@@ -18,15 +18,10 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
-        const user = await db.user.findUnique({
-          where: { email: credentials.email.toLowerCase() },
-        });
+        if (!credentials?.email || !credentials?.password) return null;
+        const user = getUserByEmail(credentials.email);
         if (!user) return null;
         if (!verifyPassword(credentials.password, user.passwordHash)) return null;
-
         return {
           id: user.id,
           email: user.email,
@@ -39,7 +34,7 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
-    maxAge: 8 * 60 * 60, // 8 hours
+    maxAge: 8 * 60 * 60,
   },
   callbacks: {
     async jwt({ token, user }) {
@@ -65,7 +60,6 @@ export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET ?? "tentacle-dev-secret-change-in-production",
 };
 
-// Type augmentation for NextAuth
 declare module "next-auth" {
   interface Session {
     user: {
