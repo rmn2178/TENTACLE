@@ -23,10 +23,14 @@ function LoginForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    const normalizedEmail = email.trim().toLowerCase();
+    const trimmedPassword = password.trim();
+
     try {
       const res = await signIn("credentials", {
-        email,
-        password,
+        email: normalizedEmail,
+        password: trimmedPassword,
         redirect: false,
       });
       if (!res || res.error) {
