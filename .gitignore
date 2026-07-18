@@ -1,0 +1,74 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# Dependencies
+node_modules/
+.pnpm-store/
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# Testing
+coverage/
+*.lcov
+
+# Next.js
+.next/
+out/
+*.tsbuildinfo
+
+# Production
+/build
+/dist
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+server.log
+dev.log
+dev.out.log
+
+# OS / editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary / local artifacts
+local-*
+tmp/
+temp/
+test/
+prompt/
+prompts/
+.claude/
+.z-ai-config
+
+# Vercel / deployment
+.vercel/
+
+# Prisma / local DB artifacts
+/prisma/dev.db
+/prisma/dev.db-journal
+/db/*.sqlite
+/db/*.sqlite-journal
+
+# Skills directory
+/skills/

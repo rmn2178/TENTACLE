@@ -1,0 +1,311 @@
+// Prisma schema for Autonomous Customer Resolution Copilot
+// Production-grade schema with proper relations, indexes, and audit models
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("agent") // admin | manager | agent
+  avatarHue    Int      @default(220)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  auditLogs    AuditLog[]
+  assignedCases Case[]  @relation("AssignedAgent")
+}
+
+// ── Customers ─────────────────────────────────────────────────────────────────
+
+model Customer {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  phone         String?
+  avatarHue     Int      @default(220)
+  tier          String   @default("standard") // standard | silver | gold | platinum
+  lifetimeValue Float    @default(0)
+  orderCount    Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  orders        Order[]
+  cases         Case[]
+  auditLogs     AuditLog[]
+  learningEntries CaseLearningEntry[]
+  leads         Lead[]
+  conversations Conversation[]
+
+  @@index([email])
+  @@index([tier])
+}
+
+// ── Orders ────────────────────────────────────────────────────────────────────
+
+model Order {
+  id              String   @id @default(cuid())
+  orderNumber     String   @unique
+  customerId      String
+  customer        Customer @relation(fields: [customerId], references: [id])
+  status          String   // placed | shipped | delivered | delayed | cancelled | returned
+  items           String   // JSON string of OrderItem[]
+  totalCents      Int
+  currency        String   @default("USD")
+  placedAt        DateTime
+  shippedAt       DateTime?
+  deliveredAt     DateTime?
+  eta             DateTime?
+  shippingAddress String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  cases           Case[]
+
+  @@index([customerId])
+  @@index([orderNumber])
+  @@index([status])
+}
+
+// ── Policies ──────────────────────────────────────────────────────────────────
+
+model Policy {
+  id          String   @id @default(cuid())
+  code        String   @unique
+  title       String
+  category    String   // refund | return | replacement | cancellation | shipping | damaged | general
+  description String
+  rules       String   // JSON string of PolicyRule[]
+  autoResolve Boolean  @default(true)
+  weight      Int      @default(1)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([category])
+}
+
+// ── Cases ─────────────────────────────────────────────────────────────────────
+
+model Case {
+  id               String   @id @default(cuid())
+  caseNumber       String   @unique
+  customerId       String
+  customer         Customer @relation(fields: [customerId], references: [id])
+  orderId          String?
+  order            Order?   @relation(fields: [orderId], references: [id])
+  channel          String   // chat | email | whatsapp
+  subject          String
+  message          String
+  intent           String?  // order_delay | damaged_item | wrong_product | ...
+  sentiment        String?  // positive | neutral | negative | frustrated | furious
+  sentimentScore   Float?   // -1..1
+  urgency          String?  // low | medium | high | critical
+  confidence       Float?   // 0..1
+  status           String   @default("new") // new | classified | retrieved | planned | acted | resolved | escalated
+  automationSafe   Boolean?
+  resolutionPlan   String?  // JSON string of ResolutionPlan
+  responseDraft    String?
+  workflowSteps    String?  // JSON string of WorkflowStep[]
+  escalationReason String?
+  assignedAgentId  String?
+  assignedAgent    User?    @relation("AssignedAgent", fields: [assignedAgentId], references: [id])
+  slaDueAt         DateTime?
+  resolvedAt       DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  auditLogs        AuditLog[]
+  retrievalHits    String?  // JSON string of RetrievalHit[]
+
+  @@index([customerId])
+  @@index([status])
+  @@index([urgency])
+  @@index([intent])
+  @@index([createdAt])
+  learningEntries CaseLearningEntry[] @relation("CaseOverrides")
+}
+
+// ── Learning Layer (Organizational Memory) ────────────────────────────────────
+// Every human override, rejected action, edited draft, or escalated false positive
+// is stored here. The AI uses this history to adjust confidence and improve
+// future decisions — this is the system's "learning moat."
+
+model CaseLearningEntry {
+  id               String   @id @default(cuid())
+  caseId           String?
+  case             Case?    @relation("CaseOverrides", fields: [caseId], references: [id])
+  customerId       String?
+  customer         Customer? @relation(fields: [customerId], references: [id])
+  overrideType     String   // rejected_action | edited_draft | escalated_false_positive | forced_action | plan_modified | resolved_differently
+  originalDecision String   // JSON: what AI proposed { action, plan, confidence }
+  humanDecision    String   // JSON: what human chose { action, note }
+  context          String   // JSON: { intent, sentiment, urgency, orderTotalCents, policyCodes }
+  feedbackNote     String?
+  createdBy        String?  // userId of the human who overrode
+  learningImpact   String?  // JSON: { confidenceDelta, adjustedConfidence } — computed on retrieval
+  createdAt        DateTime @default(now())
+
+  @@index([caseId])
+  @@index([overrideType])
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+// ── Audit Log ─────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  caseId     String?
+  case       Case?    @relation(fields: [caseId], references: [id])
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id])
+  actorType  String   // system | agent | ai
+  action     String
+  category   String   // intake | classification | retrieval | planning | action | escalation | state
+  detail     String
+  metadata   String?  // JSON string
+  createdAt  DateTime @default(now())
+
+  @@index([caseId])
+  @@index([category])
+  @@index([actorType])
+  @@index([createdAt])
+}
+
+// ── Metrics ───────────────────────────────────────────────────────────────────
+
+model Metric {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Float
+  unit      String?
+  updatedAt DateTime @updatedAt
+}
+
+// ── App Settings (singleton row) ──────────────────────────────────────────────
+
+model AppSetting {
+  id                   Int      @id @default(1)
+  autoRefundLimit      Float    @default(25)
+  autoResolveUnder     Float    @default(25)
+  highValueThreshold   Float    @default(500)
+  requireApprovalAbove Float    @default(100)
+  escalateFurious      Boolean  @default(true)
+  escalateHighValue    Boolean  @default(true)
+  responseTone         String   @default("warm_professional")
+  alwaysDraftResponse  Boolean  @default(true)
+  attachSimilarCases   Boolean  @default(true)
+  updatedAt            DateTime @updatedAt
+}
+
+// ── Revenue Operations (autonomous sales) ─────────────────────────────────────
+// The Revenue Agent treats inbound prospects as leads that flow through a full
+// autonomous sales pipeline: research → strategize → negotiate → quote → close.
+// Each lead carries computed intelligence (scores, predictions) and an
+// AI-authored sales strategy. Mirrors the Case model's relationship to policies.
+
+model Lead {
+  id                     String   @id @default(cuid())
+  leadNumber             String   @unique
+  customerId             String?
+  customer               Customer? @relation(fields: [customerId], references: [id])
+  name                   String
+  email                  String?
+  company                String
+  industry               String   // technology | retail | finance | healthcare | manufacturing | media | education | hospitality
+  companySize            String   // 1-10 | 11-50 | 51-200 | 201-1000 | 1000+
+  location               String
+  customerSegment        String   // smb | mid_market | enterprise | strategic
+  leadScore              Float    // 0..1
+  buyingIntent           String   // cold | warm | hot | buying
+  predictedRevenueCents  Int
+  lifetimeValueCents     Int
+  risk                   String   // low | medium | high
+  decisionMakerConfidence Float   // 0..1
+  openOpportunities      Int      @default(0)
+  lastPurchaseCents      Int?
+  status                 String   @default("researching") // researching | strategizing | negotiating | quoting | won | lost | nurtured
+  pipelineStageIndex     Int      @default(0) // index into the autonomous sales pipeline
+  intelligence           String?  // JSON: LeadIntelligence (Buying Intent, Risk factors, prior convos, etc.)
+  strategyId             String?
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  strategy               SalesStrategy?
+
+  @@index([status])
+  @@index([customerId])
+  @@index([leadScore])
+  @@index([createdAt])
+}
+
+// ── AI-authored sales strategy per lead ───────────────────────────────────────
+
+model SalesStrategy {
+  id                       String   @id @default(cuid())
+  leadId                   String   @unique
+  lead                     Lead     @relation(fields: [leadId], references: [id])
+  recommendedStrategy      String   // discovery | upsell | cross_sell | discount | premium_offer | enterprise_plan
+  strategyLabel            String
+  negotiationPlan          String
+  expectedCloseProbability Float    // 0..1
+  nextBestAction           String
+  confidence               Float    // 0..1
+  reasoning                String?  // JSON: strategy reasoning breakdown
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+}
+
+// ── Omnichannel conversations ─────────────────────────────────────────────────
+// Unified inbox across messaging channels. Each thread shows AI handling status,
+// lead score, and buying intent — the same intelligence layer as support cases.
+
+model Conversation {
+  id            String   @id @default(cuid())
+  channel       String   // whatsapp | instagram | website_chat | email | messenger
+  customerId    String?
+  customer      Customer? @relation(fields: [customerId], references: [id])
+  customerName  String
+  customerEmail String?
+  avatarHue     Int      @default(220)
+  preview       String
+  unread        Int      @default(0)
+  aiStatus      String   @default("handled") // handled | active | escalated | idle
+  leadScore     Float    @default(0)
+  customerTier  String   @default("standard") // standard | silver | gold | platinum
+  buyingIntent  String   @default("warm")     // cold | warm | hot | buying
+  lastMessageAt DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([channel])
+  @@index([aiStatus])
+  @@index([lastMessageAt])
+}
+
+// ── AI Workforce ──────────────────────────────────────────────────────────────
+// The autonomous agent fleet. Each agent has a specialized role, current task,
+// live latency, and confidence — surfaced in the floating AI Workforce widget.
+
+model AIAgent {
+  id             String   @id @default(cuid())
+  name           String   @unique
+  type           String   // support | revenue | research | policy | risk | finance | compliance | learning | execution
+  status         String   @default("active") // active | idle | thinking | processing | paused
+  currentTask    String?
+  latencyMs      Int      @default(0)
+  confidence     Float    @default(0)
+  tasksCompleted Int      @default(0)
+  updatedAt      DateTime @updatedAt
+  createdAt      DateTime @default(now())
+
+  @@index([type])
+  @@index([status])
+}
