@@ -1,13 +1,21 @@
 "use client";
 
+import { useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { Shell } from "@/components/layout/Shell";
-import { LoginGate } from "@/components/auth/LoginGate";
 
 export default function Home() {
   const { data: session, status } = useSession();
+  const router = useRouter();
 
-  if (status === "loading") {
+  useEffect(() => {
+    if (status !== "loading" && !session) {
+      router.replace("/login");
+    }
+  }, [session, status, router]);
+
+  if (status === "loading" || !session) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
@@ -19,10 +27,6 @@ export default function Home() {
         </div>
       </div>
     );
-  }
-
-  if (!session) {
-    return <LoginGate />;
   }
 
   return <Shell />;

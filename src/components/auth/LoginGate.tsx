@@ -22,15 +22,7 @@ export function LoginGate() {
     e.preventDefault();
     setLoading(true);
     setError(null);
-
-    const normalizedEmail = email.trim().toLowerCase();
-    const trimmedPassword = password.trim();
-
-    const res = await signIn("credentials", {
-      email: normalizedEmail,
-      password: trimmedPassword,
-      redirect: false,
-    });
+    const res = await signIn("credentials", { email, password, redirect: false });
     if (!res || res.error) {
       setError("Invalid email or password");
       setLoading(false);

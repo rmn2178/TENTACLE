@@ -21,18 +21,11 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
-
-        const normalizedEmail = credentials.email.trim().toLowerCase();
-        const trimmedPassword = credentials.password.trim();
-        if (!normalizedEmail || !trimmedPassword) {
-          return null;
-        }
-
         const user = await db.user.findUnique({
-          where: { email: normalizedEmail },
+          where: { email: credentials.email.toLowerCase() },
         });
         if (!user) return null;
-        if (!verifyPassword(trimmedPassword, user.passwordHash)) return null;
+        if (!verifyPassword(credentials.password, user.passwordHash)) return null;
 
         return {
           id: user.id,
